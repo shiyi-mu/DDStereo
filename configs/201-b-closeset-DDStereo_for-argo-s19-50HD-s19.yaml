@@ -1,0 +1,213 @@
+random_seed: 444
+
+
+dataset:
+  type: &dataset_type 'KITTI'
+  train_subsets: ['ori_train'] #ori_train, vkitti_clone, ar_ind
+
+
+  # ori_train
+  root_dir_ori_train: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training'
+  train_txt_ori_train: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training/ImageSets/train.txt'
+  # vkitti_clone
+  root_dir_vkitti_clone: '/data3/mushiyi/smb9_msy/03-Data/02-KITTI/V-KITTI/clone/training'
+  train_txt_vkitti_clone: '/data3/mushiyi/smb9_msy/03-Data/02-KITTI/V-KITTI/clone/training/ImageSets/train.txt'
+  # ar_ind
+  root_dir_ar_ind: '/data3/mushiyi/smb9_msy/03-Data/02-KITTI/KITTI-OOD/id-train'
+  train_txt_ar_ind: /data3/mushiyi/smb9_msy/03-Data/02-KITTI/KITTI-OOD/id-train/ImageSets/train.txt
+  val_subset: 'ori_val'
+  # val_subset: 'ori_val'
+  # ori_val
+  root_dir_ori_val: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training'
+  eval_txt_ori_val: /server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training/ImageSets/val.txt
+  # ood_val
+  root_dir_ood_val: '/data3/Argoverse/argo-in-kitti-format/training'
+  eval_txt_ood_val: /data3/Argoverse/argo-in-kitti-format/training/ImageSets/val.txt
+
+  train_split: 'train'
+  test_split: 'val'
+  get_img_right: True
+  get_disparity: True
+  get_disparity_on_the_fly: False
+  resolution_ori: [1280, 588] # [1280, 388]
+  resolution_ori_check_filter: False
+  batch_size: 8
+  use_3d_center: True
+  class_merging: False
+  use_dontcare: False
+  get_depth_sample_points: True
+  bbox2d_type: 'anno'  # 'proj' or 'anno'
+  meanshape: False  # use predefined anchor or not
+  writelist_train: ['Car', 'Pedestrian', 'Cyclist', 'OoD'] # 0 1 2 3
+  
+  writelist_OtherForeground: ['barrel', 'sofa_bed', 'armoire', 'toaster_oven', 
+    'volleyball', 'air_conditioner', 'wheel', 
+    'shoulder_bag', 'cabinet', 'file_cabinet', 
+    'bed', 'wardrobe', 'oven', 'backpack', 
+    'automatic_washer', 'reamer_(juicer)', 
+    'duffel_bag', 'printer', 'fire_extinguisher', 
+    'projector', 'wine_bucket', 'soccer_ball', 'bucket', 
+    'water_heater', 'bathtub', 'suitcase', 'refrigerator', 'cube', 
+    'microwave_oven', 'baby_buggy', 'sofa', 'television_set', 'satchel', 
+    'wagon_wheel', 'water_cooler', 'record_player', 'table', 
+    'ice_maker', 'bookcase', 'OoD'] # will be mapped to "OoD"
+  
+  writelist_test_Ood : ['parking_meter', 'polar_bear', 'horse', 'bulldog', 'mailbox_(at_home)', 
+                          'camel', 'hippopotamus', 'postbox_(public)', 'pony', 'lamb_(animal)', 
+                          'milestone', 'hog', 'telephone_booth', 'flowerpot', 'ram_(animal)', 
+                          'sculpture', 'puppy', 'bench', 'shepherd_dog', 'wolf', 'giant_panda', 
+                          'snowman', 'bear', 'giraffe', 'trunk', 'sheep', 'zebra', 'deer', 
+                          'goat', 'manatee', 'horned_cow', 'gravestone', 'monkey', 'dumpster', 
+                          'fireplug', 'gorilla', 'dalmatian', 'vending_machine', 'wheelchair', 
+                          'tiger', 'chaise_longue', 'mail_slot', 'cow', 'dog', 'baboon', 
+                          'rhinoceros', 'grizzly', 'trash_can', 'mammoth', 'cougar', 'person', 
+                          'chair', 'pug-dog', 'scarecrow', 'alligator', 'lion', 'elephant', 
+                          'statue_(sculpture)', 'OoD']  # will be mapped to "Ood" for test
+
+  writelist_Eval: ['Car', 'Pedestrian', 'Cyclist', 'OoD']
+  crop_top: 200
+  clip_2d: False
+  ingore_3dcenter_out_of_img: True
+  ingore_far_object: True
+  drop_unkown_level: True
+
+  aug_pd: True
+  aug_crop: True
+  random_mixup3d: 0.5
+
+  random_flip: 0.5
+  random_switch: 0.0
+  random_crop: 0.5
+  scale: 0.5
+  shift: 0.1
+
+  depth_scale: 'normal'
+  decouple: False
+  stereo_shift_aug: 0
+  is_mushiyi/smb9_msy/03-Data/05-Argoverse: True
+
+
+model_name: 'lightstereoOoDdetr'
+model:
+  model_type: 'lightstereoOoDdetr'
+  num_classes: 4
+  return_intermediate_dec: True
+  device: 'cuda'
+
+  # Backbone
+  backbone: 'resnet34'
+  train_backbone: True # True
+  num_feature_levels: 4
+  dilation: False
+  position_embedding: 'sine'  # 'sine' or 'learned'
+  masks: False
+
+  # Depth predictor
+  mode: LID
+  num_depth_bins: 80
+  depth_min: 1e-3
+  depth_max: 60.0
+  depth_bg: 0.0
+  shrink_ratio: 1
+  align_by_3d_center: True
+  cat_left: False
+  depth_map_size_mode: 'downsample_x4' # 'downsample_x16' or 'downsample_x4'
+
+  # fusion of stereo and left-mono
+  fusion_mode: null
+  
+  # Transformer
+  decoder_type: "detr" # detr depthware
+  Ood_det : MNPF  #null JustOther RBAF MNPF MSP MaxLogit
+  share_Q : Ture
+  num_scale: 3
+  FPN_type: null
+  dim3d_mode: "from_mono"
+  with_box_refine: True
+  with_center_refine: False
+  two_stage: False
+  use_dab: False
+  use_dn: False
+  two_stage_dino: False
+  depth_sample_mode: "offset" # "3Dcenter" "reference"
+  depth_pre_type: "one_w_uncertainty"  #"avg" one_w_uncertainty detrhead_w_uncertainty
+  init_box: True
+  enc_layers: 1
+  dec_layers: 3
+  hidden_dim: 256
+  group_num: 11
+  depth_sort_reverse: False
+  dim_feedforward: 256
+  dropout: 0.01
+  nheads: 8
+  num_queries: 50
+  enc_n_points: 4
+  dec_n_points: 4
+  # DN
+  scalar: 5
+  label_noise_scale: 0.2
+  box_noise_scale: 0.4
+  num_patterns: 0
+  # Loss
+  aux_loss: True
+
+  # Loss coefficients
+  cls_loss_coef: 2
+  cls_loss_coef_fg: 2
+  focal_alpha: 0.25
+
+  bbox_loss_coef: 5
+  giou_loss_coef: 2
+  3dcenter_loss_coef: 10
+  sample_point_loss_coef: 10
+  dim_loss_coef: 0.1
+  angle_loss_coef: 0.1
+  depth_loss_coef: 1
+  depth_map_loss_coef: 1 # 1
+  disp_map_loss_coef: 1
+
+  # Matcher
+  set_cost_class: 2
+  set_cost_bbox: 5
+  set_cost_giou: 2
+  set_cost_3dcenter: 0
+  set_cost_depth: 0
+  cec_beta: 0.5
+  iou_thresh: 0.02 # 过滤掉错误的匹配
+
+
+
+optimizer:
+  type: 'adam'
+  lr: 0.0002 # 0.0002
+  weight_decay: 0.0001 #0.0001
+
+
+lr_scheduler:
+  type: 'step'  # 'step' or 'cos'
+  warmup: False  # 5 epoches, cosine warmup, init_lir=0.00001 in default
+  decay_rate: 0.1
+  decay_list: [40, 45]
+
+
+trainer:
+  max_epoch: 50
+  gpu_ids: '0'
+  save_frequency: 1  # checkpoint save interval (in epoch)
+  # resume_model: True
+  # pretrain_model: outputs/01-baseline-debug/lightstereoOoDdetr/checkpoint_best.pth
+  save_path: 'outputs/201-b-closeset-DDStereo_for-argo-s19-50HD/'
+  save_all: False  # False for only savng the best and latest ckpts
+  use_dn: False
+  scalar: 5
+  label_noise_scale: 0.2
+  box_noise_scale: 0.4
+  num_patterns: 0
+
+tester:
+  type: *dataset_type
+  mode: single  # 'single' or 'all'; 'all' to evaluate all ckpts in the folder
+  checkpoint: 50  # the start ckpt epoch for 'all'
+  threshold: 0.2 # confidence filter0.2
+  topk: 50
+  decoupled: False

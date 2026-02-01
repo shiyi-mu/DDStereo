@@ -10,7 +10,7 @@ import time
 from fvcore.nn import FlopCountAnalysis, parameter_count_table
 
 class Tester(object):
-    def __init__(self, cfg, model, dataloader, logger, train_cfg=None, model_name='monodetr'):
+    def __init__(self, cfg, model, dataloader, logger, train_cfg=None, model_name='ddstereo'):
         self.cfg = cfg
         self.model = model
         self.dataloader = dataloader

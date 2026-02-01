@@ -41,7 +41,7 @@ def get_disp(dataset_predix, dataset_id_txt):
         save_disp_image(imageSets_txt, ori_id, result_dir)
 
 if __name__ == '__main__':
-    dataset_predix = "/data3/mushiyi/smb9_msy/03-Data/"
-    dataset_id_txt = "02-KITTI/object/training/ImageSets/train.txt"
+    dataset_predix = "/data3/Argoverse/argo-in-kitti-format/training"
+    dataset_id_txt = "/data3/Argoverse/argo-in-kitti-format/training/ImageSets/train.txt"
     get_disp(dataset_predix, dataset_id_txt)
     

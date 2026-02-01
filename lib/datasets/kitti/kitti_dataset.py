@@ -469,9 +469,10 @@ class KITTI_Dataset(data.Dataset):
             disp_P2 = disp_P2.resize(tuple(self.resolution_disp_ori.tolist()))
 
         if self.get_disparity and self.get_disparity_on_the_fly:
-            
+            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img3.shape", img3.size)
+            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img.shape", img.size)
             disp_P2 = self.get_disparty_P2_onfly(img, img3, random_flip_flag, random_switch_flag)
-
+            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> disp_P2.shape", disp_P2.shape)
         # image encoding
         img = np.array(img).astype(np.float32) / 255.0
         img = (img - self.mean) / self.std
