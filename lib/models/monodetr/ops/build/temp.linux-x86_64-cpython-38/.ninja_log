@@ -1,0 +1,4 @@
+# ninja log v5
+76	51499	1769340029	/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/build/temp.linux-x86_64-cpython-38/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/src/cpu/ms_deform_attn_cpu.o	8c3136124a88c75f
+77	76139	1769340054	/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/build/temp.linux-x86_64-cpython-38/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/src/vision.o	6a85b94f825d53dd
+76	205511	1769340183	/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/build/temp.linux-x86_64-cpython-38/server19/mushiyi/smb9_msy/02-Code/05-stereo-detr/DDStereo-AAAI/lib/models/monodetr/ops/src/cuda/ms_deform_attn_cuda.o	f77a05ff443b8c14
