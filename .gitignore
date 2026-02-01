@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# C/C++ build
+*.o
+*.so
+*.a
+
+# Logs
+*.log
+
+# Editor/OS
+.DS_Store
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyTorch / checkpoints
+*.pth
+*.pt
+checkpoints/
+
+# Data / outputs
+data/
+outputs/
+results/
+
+# Cache
+.cache/
