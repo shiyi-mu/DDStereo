@@ -252,12 +252,32 @@ class StereoLightDETROoD(nn.Module):
             gt_center_depth=gt_center_depth, num_gt_per_img=num_gt_per_img)
         
         return depth_map
+
+    def prepare_targets(self, targets, batch_size):
+        targets_list = []
+        mask = targets['mask_2d']
+
+        key_list = ['labels', 'boxes', 'calibs', 'depth', 'size_3d', 'heading_bin',
+                    'heading_res', 'boxes_3d', 'sample_points',
+                    'disp', "random_flip_flag", "random_switch_flag"]
+        for bz in range(batch_size):
+            target_dict = {}
+            for key, val in targets.items():
+                if key in key_list:
+                    if key in ['disp', "random_flip_flag", "random_switch_flag"]:
+                        target_dict[key] = val[bz]
+                    else:
+                        target_dict[key] = val[bz][mask[bz]]
+            targets_list.append(target_dict)
+        return targets_list
     
     def forward(self, images, calibs, targets, img_sizes, img_sizes_ori, img_sizes_upper, dn_args=None):
         """?The forward expects a NestedTensor, which consists of:
                - samples.tensor: batched images, of shape [batch_size x 3 x H x W]
                - samples.mask: a binary mask of shape [batch_size x H x W], containing 1 on padded pixels
         """
+        if isinstance(targets, dict):
+             targets = self.prepare_targets(targets, images.shape[0])
 
         batch_size = images.shape[0]
         left_images = images[:,0:3,:,:]

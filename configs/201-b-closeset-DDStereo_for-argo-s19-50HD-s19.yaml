@@ -7,8 +7,8 @@ dataset:
 
 
   # ori_train
-  root_dir_ori_train: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training'
-  train_txt_ori_train: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training/ImageSets/train.txt'
+  root_dir_ori_train: '/server19/mushiyi/data-19-temp/argo/training'
+  train_txt_ori_train: '/server19/mushiyi/data-19-temp/argo/training/ImageSets/train.txt'
   # vkitti_clone
   root_dir_vkitti_clone: '/data3/mushiyi/smb9_msy/03-Data/02-KITTI/V-KITTI/clone/training'
   train_txt_vkitti_clone: '/data3/mushiyi/smb9_msy/03-Data/02-KITTI/V-KITTI/clone/training/ImageSets/train.txt'
@@ -18,11 +18,11 @@ dataset:
   val_subset: 'ori_val'
   # val_subset: 'ori_val'
   # ori_val
-  root_dir_ori_val: '/server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training'
-  eval_txt_ori_val: /server19/mushiyi/smb9_msy/03-Data/05-Argoverse/argo-in-kitti-format/training/ImageSets/val.txt
+  root_dir_ori_val: '/server19/mushiyi/data-19-temp/argo/training'
+  eval_txt_ori_val: /server19/mushiyi/data-19-temp/argo/training/ImageSets/val.txt
   # ood_val
-  root_dir_ood_val: '/data3/Argoverse/argo-in-kitti-format/training'
-  eval_txt_ood_val: /data3/Argoverse/argo-in-kitti-format/training/ImageSets/val.txt
+  root_dir_ood_val: '/server19/mushiyi/data-19-temp/argo/training'
+  eval_txt_ood_val: /server19/mushiyi/data-19-temp/argo/training/ImageSets/val.txt
 
   train_split: 'train'
   test_split: 'val'
@@ -31,7 +31,7 @@ dataset:
   get_disparity_on_the_fly: False
   resolution_ori: [1280, 588] # [1280, 388]
   resolution_ori_check_filter: False
-  batch_size: 8
+  batch_size: 32
   use_3d_center: True
   class_merging: False
   use_dontcare: False
@@ -192,7 +192,7 @@ lr_scheduler:
 
 trainer:
   max_epoch: 50
-  gpu_ids: '0'
+  gpu_ids: '0,1,2,3'
   save_frequency: 1  # checkpoint save interval (in epoch)
   # resume_model: True
   # pretrain_model: outputs/01-baseline-debug/lightstereoOoDdetr/checkpoint_best.pth

@@ -125,20 +125,59 @@ class Trainer(object):
             for key in targets.keys():
                 if key != "img_id":
                     targets[key] = targets[key].to(self.device)
+                    # Fix for DataParallel: ensure no 0-dim tensors
+                    if isinstance(targets[key], torch.Tensor) and targets[key].ndim == 0:
+                         targets[key] = targets[key].unsqueeze(0)
+
             img_sizes = targets['img_size_croped']
             img_sizes_ori = info['img_size_original'].to(self.device)
             img_sizes_upper = info['upper'].to(self.device)
-            targets = self.prepare_targets(targets, inputs.shape[0])
+            
+            # Fix for DataParallel
+            if isinstance(img_sizes_upper, torch.Tensor) and img_sizes_upper.ndim == 0:
+                img_sizes_upper = img_sizes_upper.unsqueeze(0)
+
+            # targets = self.prepare_targets(targets, inputs.shape[0])
+            
+            # Debugging DataParallel scatter issues
+            # print("\nDEBUG: Checking for 0-dim tensors before DataParallel...")
+            # for k, v in targets.items():
+                # if isinstance(v, torch.Tensor):
+                    # print(f"  targets[{k}]: shape={v.shape}, device={v.device}")
+            
+            # if self.cfg["use_dn"]:
+                # print("  Checking dn_args elements:")
+                # print(f"    targets (dict) - checked above")
+                # print(f"    scalar: {type(self.cfg['scalar'])} - {self.cfg['scalar']}")
+                # print(f"    label_noise_scale: {type(self.cfg['label_noise_scale'])} - {self.cfg['label_noise_scale']}")
+                # print(f"    box_noise_scale: {type(self.cfg['box_noise_scale'])} - {self.cfg['box_noise_scale']}")
+                # print(f"    num_patterns: {type(self.cfg['num_patterns'])} - {self.cfg['num_patterns']}")
+
             ##dn
             dn_args = None
             if self.cfg["use_dn"]:
-                dn_args=(targets, self.cfg['scalar'], self.cfg['label_noise_scale'], self.cfg['box_noise_scale'], self.cfg['num_patterns'])
+                # Ensure scalars are NOT 0-d tensors or numpy scalars, but plain python types
+                scalar = int(self.cfg['scalar'])
+                label_noise_scale = float(self.cfg['label_noise_scale'])
+                box_noise_scale = float(self.cfg['box_noise_scale'])
+                num_patterns = int(self.cfg['num_patterns'])
+                
+                dn_args=(targets, scalar, label_noise_scale, box_noise_scale, num_patterns)
             ###
             # train one batch
             self.optimizer.zero_grad()
+
+            # DEBUG: check for dimensions
+            # print(f">>> inputs: {inputs.shape}")
+            # print(f">>> calibs: {calibs.shape if isinstance(calibs, torch.Tensor) else type(calibs)}")
+            # print(f">>> img_sizes_upper: {img_sizes_upper.shape if isinstance(img_sizes_upper, torch.Tensor) else type(img_sizes_upper)}")
+            if isinstance(img_sizes_upper, torch.Tensor) and img_sizes_upper.ndim == 0:
+                 img_sizes_upper = img_sizes_upper.unsqueeze(0)
+            
             outputs = self.model(inputs, calibs, targets, img_sizes, img_sizes_ori, img_sizes_upper, dn_args=dn_args)
             mask_dict=None
             #ipdb.set_trace()
+            targets = self.prepare_targets(targets, inputs.shape[0])
             detr_losses_dict = self.detr_loss(outputs, targets, mask_dict)
             
             # print("detr_losses_dict", detr_losses_dict)
