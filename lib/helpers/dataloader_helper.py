@@ -32,7 +32,7 @@ def build_dataloader(cfg, workers=8):
                               worker_init_fn=my_worker_init_fn,
                               shuffle=True,
                               pin_memory=False,
-                              drop_last=False)
+                              drop_last=cfg.get('drop_last', True))
     test_loader = DataLoader(dataset=test_set,
                              batch_size=cfg['batch_size'],
                              num_workers=workers,
