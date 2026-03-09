@@ -207,10 +207,14 @@ class Trainer(object):
                 for key, val in detr_losses_dict_log.items():
                     if key == "loss_detr":
                         continue
-                    if "0" in key or "1" in key or "2" in key or "3" in key or "4" in key or "5" in key:
-                        if flags[int(key[-1])]:
+                    suffix = key.rsplit('_', 1)[-1]
+                    if suffix.isdigit():
+                        idx = int(suffix)
+                        if idx >= len(flags):
+                            flags.extend([True] * (idx + 1 - len(flags)))
+                        if flags[idx]:
                             print("")
-                            flags[int(key[-1])] = False
+                            flags[idx] = False
                     print("%s: %.2f, " %(key, val), end="")
                 print("")
                 print("")

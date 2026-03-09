@@ -722,6 +722,22 @@ class SetCriterion(nn.Module):
         losses['loss_giou'] = loss_giou.sum() / num_boxes
         return losses
 
+    def loss_double_head_2d_align(self, outputs, targets, indices, indices_filted, num_boxes):
+        inter_outputs = outputs.get('inter_outputs', None)
+        if not inter_outputs:
+            zero = outputs['pred_boxes'].sum() * 0.0
+            return {'loss_double_head_2d_align': zero}
+
+        stereo_boxes = inter_outputs[-1]['pred_boxes'][..., 2:6]
+        mono_boxes = outputs['pred_boxes'][..., 2:6]
+        min_queries = min(mono_boxes.shape[1], stereo_boxes.shape[1])
+        mono_boxes = mono_boxes[:, :min_queries]
+        stereo_boxes = stereo_boxes[:, :min_queries]
+        align_loss = F.l1_loss(mono_boxes, stereo_boxes, reduction='none')
+        losses = {}
+        losses['loss_double_head_2d_align'] = align_loss.mean()
+        return losses
+
     def loss_depths_stable(self, outputs, targets, indices, indices_filted, num_boxes):  
         bs, nq = outputs['pred_depth'].shape[:2]
 
@@ -875,6 +891,7 @@ class SetCriterion(nn.Module):
             'center': self.loss_3dcenter,
             'depth_map': self.loss_depth_map,
             'disp_map': self.loss_disp_map,
+            'double_head_2d_align': self.loss_double_head_2d_align,
         }
 
         assert loss in loss_map, f'do you really want to compute {loss} loss?'
@@ -927,7 +944,7 @@ class SetCriterion(nn.Module):
                 indices, indices_filted = self.matcher(aux_outputs, targets, group_num=group_num)
                 for loss in self.losses:
 
-                    if loss in ['depth_map', 'labels_fg', 'disp_map', 'dims','depths', 'angles', 'center', 'sample_point']:
+                    if loss in ['depth_map', 'labels_fg', 'disp_map', 'dims','depths', 'angles', 'center', 'sample_point', 'double_head_2d_align']:
                     # if loss in ['depth_map', 'labels_fg', 'disp_map']:
                         # Intermediate masks losses are too costly to compute, we ignore them.
                         continue
@@ -1002,6 +1019,8 @@ def build_lightstereoOod(cfg):
     weight_dict['loss_center'] = cfg['3dcenter_loss_coef']
     weight_dict['loss_depth_map'] = cfg['depth_map_loss_coef']
     weight_dict['loss_disp_map'] = cfg['disp_map_loss_coef']
+    double_head_align_coef = cfg.get('double_head_2d_align_loss_coef', 0.0)
+    weight_dict['loss_double_head_2d_align'] = double_head_align_coef
     
     # dn loss
     if cfg['use_dn']:
@@ -1032,6 +1051,9 @@ def build_lightstereoOod(cfg):
         losses = ['labels', 'labels_fg', 'boxes', 'cardinality', 'depths', 'dims', 'angles', 'center', 'depth_map', 'disp_map']
     else:
         losses = ['labels', 'boxes', 'cardinality', 'depths', 'dims', 'angles', 'center', 'depth_map', 'disp_map']
+
+    if double_head_align_coef > 0:
+        losses.append('double_head_2d_align')
     
     criterion = SetCriterion(
         cfg['num_classes'],

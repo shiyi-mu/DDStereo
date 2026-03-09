@@ -36,9 +36,18 @@ def load_checkpoint(model, optimizer, filename, map_location, logger=None):
         best_result = checkpoint.get('best_result', 0.0)
         best_epoch = checkpoint.get('best_epoch', 0.0)
         if model is not None and checkpoint['model_state'] is not None:
-            model.load_state_dict(checkpoint['model_state'])
+            if isinstance(model, torch.nn.DataParallel):
+                model.module.load_state_dict(checkpoint['model_state'])
+            else:
+                model.load_state_dict(checkpoint['model_state'])
         if optimizer is not None and checkpoint['optimizer_state'] is not None:
-            optimizer.load_state_dict(checkpoint['optimizer_state'])
+            optimizer_state = checkpoint['optimizer_state']
+            # Fix for "AssertionError: If capturable=False, state_steps should not be CUDA tensors."
+            if 'state' in optimizer_state:
+                for param_id, state in optimizer_state['state'].items():
+                    if 'step' in state and isinstance(state['step'], torch.Tensor) and state['step'].is_cuda:
+                         state['step'] = state['step'].cpu()
+            optimizer.load_state_dict(optimizer_state)
         logger.info("==> Done")
     else:
         raise FileNotFoundError

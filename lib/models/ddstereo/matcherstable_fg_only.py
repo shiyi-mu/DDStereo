@@ -117,6 +117,13 @@ class StableHungarianMatcher(nn.Module):
         C = self.cost_bbox * cost_bbox + self.cost_3dcenter * cost_3dcenter \
             + self.cost_class * cost_class \
             + self.cost_giou * cost_giou
+        
+        # Check for invalid values
+        if not torch.isfinite(C).all():
+            print("Warning: Cost matrix C contains invalid values (NaN or Inf). Replacing with high cost.")
+            C = torch.where(torch.isnan(C), torch.tensor(1e6, device=C.device, dtype=C.dtype), C)
+            C = torch.where(torch.isinf(C), torch.tensor(1e6, device=C.device, dtype=C.dtype), C)
+            
         C = C.view(bs, num_queries, -1).cpu()
 
         sizes = [len(v["boxes"]) for v in targets]

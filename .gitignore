@@ -42,3 +42,6 @@ results/
 
 # Cache
 .cache/
+
+*.ipynb
+._.DS_Store

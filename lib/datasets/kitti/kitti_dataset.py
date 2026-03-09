@@ -132,7 +132,8 @@ class KITTI_Dataset(data.Dataset):
         self.decouple = cfg.get('decouple', False)
         self.get_depth_sample_points = cfg.get('get_depth_sample_points', True)
         self.is_argoverse = cfg.get('is_argoverse', False)
-        
+        self.disp_from = cfg.get('disp_from', "cv2")
+        print(">>>>>mushiyi>>>> self.disp_from", self.disp_from)
         print(">>>>>mushiyi>>>> self.ingore_far_object", self.ingore_far_object)
         print(">>>>>mushiyi>>>> self.ingore_3dcenter_out_of_img", self.ingore_3dcenter_out_of_img)
         print(">>>>>mushiyi>>>> self.drop_occupied", self.drop_occupied)
@@ -169,7 +170,10 @@ class KITTI_Dataset(data.Dataset):
   
         self.image_dir = os.path.join(self.data_dir, 'image_2')
         self.image3_dir = os.path.join(self.data_dir, 'image_3')
-        self.disparity_dir = os.path.join(self.data_dir, 'cv2disps')
+        if self.disp_from == "cv2":
+            self.disparity_dir = os.path.join(self.data_dir, 'cv2disps')
+        elif self.disp_from == "FoundationStereo":
+            self.disparity_dir = os.path.join(self.data_dir, 'FoundationStereoDisp')
         self.calib_dir = os.path.join(self.data_dir, 'calib')
         self.label_dir = os.path.join(self.data_dir, 'label_2')
 
@@ -469,10 +473,10 @@ class KITTI_Dataset(data.Dataset):
             disp_P2 = disp_P2.resize(tuple(self.resolution_disp_ori.tolist()))
 
         if self.get_disparity and self.get_disparity_on_the_fly:
-            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img3.shape", img3.size)
-            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img.shape", img.size)
+            # print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img3.shape", img3.size)
+            # print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> img.shape", img.size)
             disp_P2 = self.get_disparty_P2_onfly(img, img3, random_flip_flag, random_switch_flag)
-            print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> disp_P2.shape", disp_P2.shape)
+            # print(">>>DEBUG DATSET mushiyi>>> compute disp on the fly >>>>> disp_P2.shape", disp_P2.shape)
         # image encoding
         img = np.array(img).astype(np.float32) / 255.0
         img = (img - self.mean) / self.std
