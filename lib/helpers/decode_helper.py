@@ -350,6 +350,50 @@ def extract_dets_from_outputs(outputs, K=50, topk=50):
     return detections
 
 
+def extract_stereo_dets_from_outputs(outputs, K=50, topk=50):
+    """Extract 2D detections from stereo transformer branch (foreground-only)."""
+    inter_outputs = outputs.get('inter_outputs', None)
+    if inter_outputs is None or len(inter_outputs) == 0:
+        return None
+
+    # Use last layer of stereo decoder
+    stereo_out = inter_outputs[-1]
+    out_logits_fg = stereo_out['pred_logits_fg']  # [b, q, 1]
+    out_bbox = stereo_out['pred_boxes']  # [b, q, 6]
+
+    prob = out_logits_fg.sigmoid()  # [b, q, 1]
+
+    # topk over all queries
+    topk_values, topk_indexes = torch.topk(prob.view(out_logits_fg.shape[0], -1), topk, dim=1)
+
+    scores = topk_values.unsqueeze(-1)
+    topk_boxes = topk_indexes.unsqueeze(-1)
+
+    # Gather boxes: [x3d, y3d, x2d_cx, x2d_cy, x2d_w, x2d_h]
+    boxes = torch.gather(out_bbox, 1, topk_boxes.repeat(1, 1, 6))
+
+    # Convert to corner format for 2D bbox
+    corner_2d = box_ops.box_cxcylrtb_to_xyxy(boxes)
+    xywh_2d = box_ops.box_xyxy_to_cxcywh(corner_2d)
+    size_2d = xywh_2d[:, :, 2: 4]
+    xs2d = xywh_2d[:, :, 0: 1]
+    ys2d = xywh_2d[:, :, 1: 2]
+
+    # For stereo branch, we don't have 3D dim / depth / angle
+    # Fill with dummy values to keep same tensor shape
+    batch = out_logits_fg.shape[0]
+    labels = torch.zeros((batch, topk, 1), device=out_logits_fg.device)  # dummy label 0
+    heading = torch.zeros((batch, topk, 24), device=out_logits_fg.device)
+    size_3d = torch.zeros((batch, topk, 3), device=out_logits_fg.device)
+    depth = torch.zeros((batch, topk, 1), device=out_logits_fg.device)
+    sample_x = xs2d.clone()
+    sample_y = ys2d.clone()
+    sigma = torch.ones((batch, topk, 1), device=out_logits_fg.device)
+
+    detections = torch.cat([labels, scores, xs2d, ys2d, size_2d, depth, heading, size_3d, xs2d, ys2d, sample_x, sample_y, sigma], dim=2)
+    return detections
+
+
 ############### auxiliary function ############
 
 

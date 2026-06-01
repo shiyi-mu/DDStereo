@@ -5,6 +5,7 @@ import shutil
 import torch
 from lib.helpers.save_helper import load_checkpoint
 from lib.helpers.decode_helper import extract_dets_from_outputs
+from lib.helpers.decode_helper import extract_stereo_dets_from_outputs
 from lib.helpers.decode_helper import decode_detections
 import time
 from fvcore.nn import FlopCountAnalysis, parameter_count_table
@@ -40,7 +41,7 @@ class Tester(object):
                             map_location=self.device,
                             logger=self.logger)
             self.model.to(self.device)
-            self.inference()
+            self.inference_with_stereo()
             # print(">>>>mushiyi>>a"*100)
             self.evaluate()
 
@@ -61,7 +62,7 @@ class Tester(object):
                                 map_location=self.device,
                                 logger=self.logger)
                 self.model.to(self.device)
-                self.inference()
+                self.inference_with_stereo()
                 self.evaluate()
 
     def inference(self):
@@ -126,6 +127,114 @@ class Tester(object):
         self.logger.info('==> Saving ...')
         self.save_results(results)
         self.save_results_samples(results_samples)
+
+    def inference_with_stereo(self):
+        torch.set_grad_enabled(False)
+        self.model.eval()
+
+        results = {}
+        results_samples = {}
+        results_stereo = {}
+        progress_bar = tqdm.tqdm(total=len(self.dataloader), leave=True, desc='Evaluation Progress')
+        model_infer_time = 0
+        for batch_idx, (inputs, calibs, targets, info) in enumerate(self.dataloader):
+            # load evaluation data and move data to GPU.
+            inputs = inputs.to(self.device)
+            calibs = calibs.to(self.device)
+            img_sizes = info['img_size_croped'].to(self.device)
+            img_sizes_ori = info['img_size_original'].to(self.device)
+            img_sizes_upper = info['upper'].to(self.device)
+
+            start_time = time.time()
+
+            outputs = self.model(inputs, calibs, targets, img_sizes, img_sizes_ori, img_sizes_upper, dn_args = 0)
+            end_time = time.time()
+            model_infer_time += end_time - start_time
+
+            dets = extract_dets_from_outputs(outputs=outputs, K=self.max_objs, topk=self.cfg['topk'])
+            dets = dets.detach().cpu().numpy()
+
+            # stereo branch detections
+            stereo_dets = extract_stereo_dets_from_outputs(outputs=outputs, K=self.max_objs, topk=self.cfg['topk'])
+            if stereo_dets is not None:
+                stereo_dets = stereo_dets.detach().cpu().numpy()
+            else:
+                stereo_dets = np.zeros((dets.shape[0], 0, dets.shape[2]))
+
+            # get corresponding calibs & transform tensor to numpy
+            calibs = [self.dataloader.dataset.get_calib(index) for index in info['img_id']]
+            info = {
+                    key: val.detach().cpu().numpy() if key != "img_id" else val
+                    for key, val in info.items()
+                    }
+            cls_mean_size = self.dataloader.dataset.cls_mean_size
+            dets, samples = decode_detections(
+                    dets=dets,
+                    info=info,
+                    calibs=calibs,
+                    cls_mean_size=cls_mean_size,
+                    threshold=self.cfg.get('threshold', 0.2),
+                    decoupled=self.cfg.get('decoupled', False))
+
+            # decode stereo dets (only 2D bbox, no 3D info)
+            stereo_results = {}
+            for i in range(stereo_dets.shape[0]):
+                preds = []
+                for j in range(stereo_dets.shape[1]):
+                    score = stereo_dets[i, j, 1]
+                    if score < self.cfg.get('threshold', 0.2):
+                        continue
+                    cls_id = 0  # foreground, treat as generic
+                    scale_y = info['img_size_original'][i][1] / (info['upper'][i]+ info['img_size_croped'][i][1])
+                    scale_w = info['img_size_original'][i][0] / info['img_size_croped'][i][0]
+                    scale_y = scale_w
+                    x = stereo_dets[i, j, 2] * info['img_size_original'][i][0]
+                    y = (stereo_dets[i, j, 3] * info['img_size_croped'][i][1] + info['upper'][i])*scale_y
+                    delta_y = (info['img_size_original'][i][1] - (info['img_size_croped'][i][1] + info['upper'][i])*scale_y)/2
+                    y += delta_y
+                    w = stereo_dets[i, j, 4] * info['img_size_original'][i][0]
+                    h = stereo_dets[i, j, 5] * info['img_size_croped'][i][1]*scale_y
+                    bbox = [x-w/2, y-h/2, x+w/2, y+h/2]
+                    preds.append([cls_id, 0.0] + bbox + [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, score])
+                stereo_results[info['img_id'][i]] = preds
+
+            results.update(dets)
+            results_samples.update(samples)
+            results_stereo.update(stereo_results)
+            progress_bar.update()
+
+        print("inference on {} images by {}/per image".format(
+            len(self.dataloader), model_infer_time / len(self.dataloader)))
+
+        progress_bar.close()
+
+        # save the result for evaluation.
+        self.logger.info('==> Saving ...')
+        self.save_results(results)
+        self.save_results_samples(results_samples)
+        self.save_results_stereo(results_stereo)
+
+    def save_results_stereo(self, results):
+        output_dir = os.path.join(self.output_dir, 'outputs', 'data_stereo')
+        os.makedirs(output_dir, exist_ok=True)
+
+        for img_id in results.keys():
+            if self.dataset_type == 'KITTI':
+                output_path = os.path.join(output_dir, f'{img_id}.txt')
+            else:
+                os.makedirs(os.path.join(output_dir, self.dataloader.dataset.get_sensor_modality(img_id)), exist_ok=True)
+                output_path = os.path.join(output_dir,
+                                           self.dataloader.dataset.get_sensor_modality(img_id),
+                                           self.dataloader.dataset.get_sample_token(img_id) + '.txt')
+
+            f = open(output_path, 'w')
+            for i in range(len(results[img_id])):
+                class_name = 'StereoFG'
+                f.write('{} -1 -1'.format(class_name))
+                for j in range(1, len(results[img_id][i])):
+                    f.write(' {:.2f}'.format(results[img_id][i][j]))
+                f.write('\n')
+            f.close()
 
     def save_results(self, results):
         output_dir = os.path.join(self.output_dir, 'outputs', 'data')
