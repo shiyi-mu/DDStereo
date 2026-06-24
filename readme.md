@@ -1,5 +1,9 @@
 # DDStereo
-DDStereo: Efficient Dual Decoder Transformers for Open-set Stereo 3D Object Detection
+DDStereo: Efficient Dual Decoder Transformers for Stereo 3D Road Anomaly Detection
+
+Arxiv：http://arxiv.org/abs/2606.24805
+
+Final version was accepted by ECCV26
 
 ## Environment Configuration
 We refer to the environment of `monodetr`.
