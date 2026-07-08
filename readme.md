@@ -5,6 +5,8 @@ Arxiv：http://arxiv.org/abs/2606.24805
 
 Final version was accepted by ECCV26
 
+中文解读：https://zhuanlan.zhihu.com/p/2057848128540243019
+
 ## Environment Configuration
 We refer to the environment of `monodetr`.
 ```bash
